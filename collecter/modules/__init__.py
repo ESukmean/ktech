@@ -11,7 +11,7 @@ REGISTERED_MODULE = (
 )
 
 def module_id(module_name: str) -> Option[int]:
-	if module_name not in module_id:
+	if module_name not in MODULE_ID:
 		return None
 	
-	return Some(module_id[module_name])
+	return Some(MODULE_ID[module_name])

@@ -19,9 +19,10 @@ async def main():
 			blog_list.extend(blogs)
 
 		for task in zip(fetch_task, blog_list):
-			await task
+			result = await task[0]
+			print(result)
 
-		asyncio.sleep(60 * 10)
+		await asyncio.sleep(60 * 10)
 
 
 asyncio.run(main())

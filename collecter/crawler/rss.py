@@ -1,7 +1,7 @@
 from option import *
 from crawler import blog, article
 import aiohttp
-from defusedxml.ElementTree import parse
+from defusedxml.ElementTree import fromstring as xml_fromstring
 import datetime
 
 class rss(blog):
@@ -11,11 +11,11 @@ class rss(blog):
 		self.__dict__.update(kwargs)
 	
 
-	async def fetch(self) -> Result[blog]:
+	async def fetch(self) -> Result[blog, str]:
 		try:
 			async with aiohttp.ClientSession() as session:
 				headers = {
-					
+					'user-agent': 'Mozilla/5.0 (compatible; KTech; +https://github.com/ESukmean/ktech)'
 				}
 
 				async with session.get(self.base + '/feed/rss2', headers = headers) as response:
@@ -23,29 +23,32 @@ class rss(blog):
 						return Err(f'status code != 200 ({self.base}/feed/rss2)')
 
 					body = await response.text()
-					et = parse(body)
+					root = xml_fromstring(body).find('channel')
+					if root is None:
+						return Err('not rss2 feed')
 
-					root = et.get_root()
+					title = Option.maybe(root.find('title')).map(lambda e: e.text).unwrap_or('')
+					link = Option.maybe(root.find('link')).map(lambda e: e.text).unwrap_or('')
+					description = Option.maybe(root.find('description')).map(lambda e: e.text).unwrap_or('')
 					
-					title = root.get('title', '')
-					link = root.get('link', self.base + '/feed/rss2')
-					description = root.get('description', '')
+					print(root.attrib)
 
 					crawl_result = blog(title = title, link = link, description = description)
 					for child in root.findall('item'):
-						title = child.get('title', '')
-						url = child.get('link', self.base)
-						author = child.get('dc:creator', None)
+						title = Option.maybe(child.find('title')).map(lambda e: e.text).unwrap_or('')
+						url = Option.maybe(child.find('link')).map(lambda e: e.text).unwrap_or(self.base)
+						author = Option.maybe(child.find('dc:creator')).map(lambda e: e.text).unwrap_or('')
 						category = tuple(map(lambda el: el.text, child.findall('category')))
-						description = child.get('description', '')
+						description = Option.maybe(child.find('description')).map(lambda e: e.text).unwrap_or('')
 
 						item = article(title = title, url = url, author = author, category = category, description = description)
-						
-						post = child.get('pubDate')
-						if post is not None:
-							pubDT = datetime.datetime.strptime(post, '%Y-%m-%d %H:%M:%S')
-							item.post = pubDT
+						print(title, url, author, category, description)
 
+						post = child.find('pubDate')
+						if post is not None:
+							pubDT = datetime.datetime.strptime(post.text, '%a, %d %b %Y %H:%M:%S %z')
+							item.post = pubDT
+						
 						crawl_result.add_article(item)
 
 					return Ok(crawl_result)
