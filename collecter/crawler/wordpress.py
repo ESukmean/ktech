@@ -14,11 +14,4 @@ class wordpress(blog):
 		self.rss_crawler.url = self.base + '/feed/rss2'
 
 	async def fetch(self) -> Result[blog]:
-		xml: Result[str] = await self.rss_crawler.fetch()
-		if xml.is_err():
-			return xml
-
-		et = parse(xml.unwrap())
-		
-
-				
+		return await self.rss_crawler.fetch()
