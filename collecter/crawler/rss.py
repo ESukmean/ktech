@@ -1,17 +1,18 @@
 from option import *
-from crawler import blog, article
+from crawler import Blog, Article
 import aiohttp
 from defusedxml.ElementTree import fromstring as xml_fromstring
 import datetime
 
-class rss(blog):
+class Rss(Blog):
 	base: str
 
 	def __init__(self, **kwargs):
+		super().__init__() 
 		self.__dict__.update(kwargs)
 	
 
-	async def fetch(self) -> Result[blog, str]:
+	async def fetch(self) -> Result[Blog, str]:
 		try:
 			async with aiohttp.ClientSession() as session:
 				headers = {
@@ -27,13 +28,10 @@ class rss(blog):
 					if root is None:
 						return Err('not rss2 feed')
 
-					title = Option.maybe(root.find('title')).map(lambda e: e.text).unwrap_or('')
-					link = Option.maybe(root.find('link')).map(lambda e: e.text).unwrap_or('')
-					description = Option.maybe(root.find('description')).map(lambda e: e.text).unwrap_or('')
+					self.name = Option.maybe(root.find('title')).map(lambda e: e.text).unwrap_or('')
+					self.link = Option.maybe(root.find('link')).map(lambda e: e.text).unwrap_or('')
+					self.description = Option.maybe(root.find('description')).map(lambda e: e.text).unwrap_or('')
 					
-					print(root.attrib)
-
-					crawl_result = blog(title = title, link = link, description = description)
 					for child in root.findall('item'):
 						title = Option.maybe(child.find('title')).map(lambda e: e.text).unwrap_or('')
 						url = Option.maybe(child.find('link')).map(lambda e: e.text).unwrap_or(self.base)
@@ -41,17 +39,15 @@ class rss(blog):
 						category = tuple(map(lambda el: el.text, child.findall('category')))
 						description = Option.maybe(child.find('description')).map(lambda e: e.text).unwrap_or('')
 
-						item = article(title = title, url = url, author = author, category = category, description = description)
-						print(title, url, author, category, description)
-
+						item = Article(title = title, url = url, author = author, category = category, article = description) 
 						post = child.find('pubDate')
 						if post is not None:
 							pubDT = datetime.datetime.strptime(post.text, '%a, %d %b %Y %H:%M:%S %z')
 							item.post = pubDT
 						
-						crawl_result.add_article(item)
+						self.add_article(item)
 
-					return Ok(crawl_result)
+					return Ok(self)
 
 
 		except Exception as e:

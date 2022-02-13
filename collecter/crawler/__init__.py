@@ -10,7 +10,7 @@ _tag_keyword_re = {
 }
 _strip_tag_regex = re.compile('<.*?>')
 
-class article:
+class Article:
 	title: str = ''
 	article: str = ''
 	post: datetime = None
@@ -22,14 +22,16 @@ class article:
 	def __init__(self, **kwargs) -> None:
 		self.__dict__.update(kwargs)
 	
-	def get_summary(self) -> str:
+	def get_clean_article(self) -> str:
 		if 'article' not in self.__dict__:
 			return ''
 
 		article = _strip_tag_regex.sub('', self.article)
 		import html
-
 		return html.unescape(article)
+
+	def get_summary(self) -> str:
+		return self.get_clean_article()
 
 	def get_tag(self) -> Tuple[str]:
 		result = []
@@ -39,20 +41,20 @@ class article:
 		
 		article = self.get_summary()
 		for tag, regex in _tag_keyword_re.items():
-			if regex.find(article) == -1:
+			if regex.search(article) is None:
 				continue
 				
 			result.append(tag)
 
 		return tuple(result)
 	
-class blog:
+class Blog:
 	blog_id: int
 	name: str
 	link: str
 	description: str
 
-	article: List[article]
+	article: List[Article]
 
 	def __init__(self, **kwargs):
 		self.blog_id = 0
@@ -63,8 +65,8 @@ class blog:
 
 		self.__dict__.update(kwargs)
 		
-	async def fetch(self) -> List[article]:
+	async def fetch(self) -> List[Article]:
 		return []
 
-	def add_article(self, article: 'article'):
+	def add_article(self, article: Article):
 		self.article.append(article)

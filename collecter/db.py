@@ -5,11 +5,11 @@ proto = {
 	}
 }
 
-class inner:
+class Inner:
 	pass
 
-class db:
-	connection = inner()
+class DB:
+	connection = Inner()
 	def get_blogs(self, module_id: int) -> Tuple[Dict]:
 		base = proto['get_blogs']
 		if module_id not in base:
